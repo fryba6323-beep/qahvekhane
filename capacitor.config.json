@@ -1,0 +1,8 @@
+{
+  "appId": "com.qahvekhane.game",
+  "appName": "قهوه‌خانهٔ سرگذر",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
