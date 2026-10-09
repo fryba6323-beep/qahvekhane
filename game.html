@@ -74,6 +74,10 @@ button:focus-visible{outline:3px solid var(--turq);outline-offset:2px}
 .bar.c i{background:var(--gold)}.bar.s i{background:var(--madder)}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .opt small{color:#f0c264}
+.gauge{position:relative;height:34px;background:#12183a;border:2px solid var(--gold);border-radius:10px;margin:10px 0;overflow:hidden;direction:ltr}
+.gauge .zg{position:absolute;left:30%;width:40%;top:0;bottom:0;background:rgba(53,179,173,.35)}
+.gauge .zp{position:absolute;left:41%;width:18%;top:0;bottom:0;background:rgba(53,179,173,.85)}
+.gauge .mk{position:absolute;top:0;bottom:0;width:6px;margin-left:-3px;background:var(--gold);left:0}
 @media (prefers-reduced-motion:reduce){.walker,.steam{animation:none}}
 @media (max-width:420px){h1{font-size:25px}.hud b{font-size:14px}.stage{aspect-ratio:4/3}.stage.fb{aspect-ratio:800/330}}
 </style>
@@ -1027,7 +1031,7 @@ function set3D(){
 }
 /* ---------- وضعیت بازی ---------- */
 let S={};
-function freshState(){return {view:'title',day:1,phase:0,coins:40,rep:50,stock:{tea:8,coffee:4,qalyan:4},upg:{},met:{},clues:{},trust:{},alert:{},pref:{},arrested:{},away:{},gone:{},mods:{},queue:[],cur:null,note:'',lvlNote:'',usedDec:[],jr:false,modal:null,tab:'clues',visitDone:false,winDone:false,inspected:false,dec:null,decNote:'',endKey:'',name:'',bg:'',lvl:1,xp:0,pts:0,sk:{haggle:0,charm:0,wits:0,nerve:0},fac:{court:20,people:20,shadow:0},heat:0,ring:false,informant:false,jails:0,evUsed:{},said:{},pend:null,ev:null,evId:'',evBack:'street',cn:0,prison:'',f:{},recent:[],mis:null,tipDay:0,season:1,seasonMod:'',seasonsDone:0,st:{served:0,clues:0,arrests:0,wrong:0,events:0,days:0,jails:0},ended:false,counted:false,gainLeg:0,finalScore:0,newBest:false,confirmDel:'',exportCode:''};}
+function freshState(){return {view:'title',day:1,phase:0,coins:40,rep:50,stock:{tea:8,coffee:4,qalyan:4},upg:{},met:{},clues:{},trust:{},alert:{},pref:{},arrested:{},away:{},gone:{},mods:{},queue:[],cur:null,note:'',lvlNote:'',usedDec:[],jr:false,modal:null,tab:'clues',visitDone:false,winDone:false,inspected:false,dec:null,decNote:'',endKey:'',name:'',bg:'',lvl:1,xp:0,pts:0,sk:{haggle:0,charm:0,wits:0,nerve:0},fac:{court:20,people:20,shadow:0},heat:0,ring:false,informant:false,jails:0,evUsed:{},said:{},pend:null,ev:null,evId:'',evBack:'street',cn:0,prison:'',f:{},recent:[],mis:null,tipDay:0,season:1,seasonMod:'',seasonsDone:0,st:{served:0,clues:0,arrests:0,wrong:0,events:0,days:0,jails:0},ended:false,counted:false,gainLeg:0,finalScore:0,newBest:false,confirmDel:'',exportCode:'',mg:null,pourBonus:0};}
 function newGame(){
  S=freshState();lastAuto='';
  applySeason();
@@ -1042,7 +1046,7 @@ function begin(bg){
  startDay();render();
 }
 const need=l=>25+15*(l-1);
-function addXp(n){S.xp+=n;while(S.lvl<10&&S.xp>=need(S.lvl)){S.xp-=need(S.lvl);S.lvl++;S.pts++;S.lvlNote=`سطح تو به ${FA(S.lvl)} رسید! یک امتیاز مهارت گرفتی (از «دفتر یادداشت» خرجش کن).`;}}
+function addXp(n){S.xp+=n;while(S.lvl<10&&S.xp>=need(S.lvl)){S.xp-=need(S.lvl);S.lvl++;S.pts++;sfx('level');S.lvlNote=`سطح تو به ${FA(S.lvl)} رسید! یک امتیاز مهارت گرفتی (از «دفتر یادداشت» خرجش کن).`;}}
 function gain(o){
  const out=[],nm={coins:'قران',rep:'اعتبار',court:'دربار',people:'مردم',shadow:'سایه‌ها',heat:'ظن داروغه',xp:'تجربه'};
  for(const k in o){
@@ -1105,7 +1109,7 @@ function endSequence(){
 function afterDays(k){S.day+=k;if(S.day>=FINAL)endSequence();else startDay();}
 function sleep(){S.day++;S.st.days++;if(S.day>=FINAL)endSequence();else startDay();render();}
 function arrest(reason){
- S.jails++;S.st.jails++;S.cur=null;S.queue=[];
+ S.jails++;S.st.jails++;sfx('bad');S.cur=null;S.queue=[];
  if(S.jails>=2){S.view='end';S.endKey='prison';return;}
  S.rep=0;S.coins=Math.floor(S.coins/2);S.heat=0;S.prison=reason;
  S.ev=EV.prison;S.evId='prison';S.evBack='street';S.view='event';
@@ -1130,7 +1134,7 @@ function setTab(t){S.tab=t;render();}
 function openEvent(id,back){S.ev=EV[id];S.evId=id;S.evBack=back||'street';S.view='event';render();}
 function choose(i){
  const ev=S.ev,o=ev.o[i];if(!o||(o.can&&!o.can()))return;
- S.evUsed[S.evId]=true;S.st.events++;S.view=S.evBack||'street';S.ev=null;
+ S.evUsed[S.evId]=true;S.st.events++;sfx('click');S.view=S.evBack||'street';S.ev=null;
  const r=o.fx();S.note=typeof r==='string'?r:'';
  render();
 }
@@ -1244,10 +1248,11 @@ function serve(k){
  if(liked){gainC+=1+(S.upg.farsh?1:0)+(S.mods.tipBonus||0);S.rep=clamp(S.rep+1,0,100);addXp(2);}
  S.st.served++;
  if(p.free)S.rep=clamp(S.rep+2,0,100);
- S.coins+=gainC;
+ const pb=S.pourBonus||0;S.pourBonus=0;gainC+=pb;S.coins+=gainC;sfx('coin');
  if(liked){S.pref[p.id]=k;if(p.role==='spy'||p.role==='decoy')S.trust[p.id]=(S.trust[p.id]||0)+1;}
  const g=p.free?'(اعتبارت بالا رفت)':`(+${FA(gainC)} قران)`;
- c.msg=liked?`${p.name} فنجان را گرفت و لبخند زد؛ انگار همین را می‌خواست. ${g}`:`${p.name} بی‌حرف نوشید. ${g}`;
+ const pn=pb>=2?' ریختن ماهرانه!':pb===1?' ریختن خوب.':'';
+ c.msg=liked?`${p.name} فنجان را گرفت و لبخند زد؛ انگار همین را می‌خواست. ${g}${pn}`:`${p.name} بی‌حرف نوشید. ${g}${pn}`;
  if((p.role==='spy'||p.role==='decoy')&&S.sk.wits>0&&Math.random()<.07*S.sk.wits){const r=reveal(p.id,'تیزبینی');if(r)c.msg2='چیزی توجهت را جلب کرد. '+r;}
  c.served=true;render();
 }
@@ -1295,7 +1300,7 @@ function buyCost(k,n){const price=((k==='tea'&&S.mods.teaBuy)?S.mods.teaBuy:ITEM
 function buy(k,n){
  const cost=buyCost(k,n);
  if(S.coins<cost){S.note='پولت کافی نیست.';render();return;}
- S.coins-=cost;S.stock[k]+=n;S.note=`${FA(n)} ${ITEMS[k].n} خریدی.`;render();
+ S.coins-=cost;S.stock[k]+=n;sfx('coin');S.note=`${FA(n)} ${ITEMS[k].n} خریدی.`;render();
 }
 const UPG=[
  {id:'tablo',n:'تابلوی قهوه‌خانه‌ای',c:30,d:'نقاشی رستم و سهراب روی دیوار؛ اعتبار +۵ و هر روز +۱'},
@@ -1305,7 +1310,7 @@ const UPG=[
 function upgrade(id){
  const u=UPG.find(x=>x.id===id);
  if(S.upg[id]||S.coins<u.c){S.note='نمی‌شود.';render();return;}
- S.coins-=u.c;S.upg[id]=true;if(id==='tablo')S.rep=clamp(S.rep+5,0,100);
+ S.coins-=u.c;S.upg[id]=true;sfx('coin');if(id==='tablo')S.rep=clamp(S.rep+5,0,100);
  S.note=`«${u.n}» را خریدی.`;render();
 }
 function informant(){
@@ -1337,7 +1342,7 @@ function accuse(id){
  const p=P[id],k=susp(id);
  if(p.role==='spy'){
   if(k>=3){
-   S.arrested[id]=true;S.st.arrests++;let m=`داروغه مدارکت را دید و ${p.name} را دستگیر کرد!`+gain({coins:15,rep:6,court:5,xp:25});
+   S.arrested[id]=true;S.st.arrests++;sfx('ok');let m=`داروغه مدارکت را دید و ${p.name} را دستگیر کرد!`+gain({coins:15,rep:6,court:5,xp:25});
    if(S.ring){S.ring=false;S.fac.shadow=0;m+=' سایه‌ها حالا تو را خائن می‌دانند.';}
    S.note=m;
   }else{S.away[id]=true;S.note=`داروغه گفت: «مدرکت کم است.» ${p.name} را جلب کرد و رها کرد؛ حالا محتاط‌تر شده.`+gain({rep:-3,court:-2});}
@@ -1405,7 +1410,7 @@ function applySeason(){
 }
 
 /* ---------- عکس از وضعیت و بازیابی امن ---------- */
-const TRANS=['dec','queue','cur','ev','mis','jr','modal','note','lvlNote','exportCode','confirmDel'];
+const TRANS=['dec','queue','cur','ev','mis','jr','modal','note','lvlNote','exportCode','confirmDel','mg','pourBonus'];
 const lastAutoRef={v:''};
 let lastAuto='';
 function snapshot(){
@@ -1545,7 +1550,7 @@ const PERKS=[
 ];
 const ENDN={a0:'سوءقصد رخ داد',a1:'شاه زخمی شد',a2:'نقشه به هم ریخت',a3:'شب نجات',ring_villain:'سایه‌ای در دربار',ring_hero:'قهرمانِ دوجانبه',ring_jail:'قهرمانِ زندانی',prison:'دو بار زندان',bankrupt:'ورشکستگی'};
 const ENDL={a0:2,a1:4,a2:8,a3:12,ring_villain:6,ring_hero:12,ring_jail:5,prison:1,bankrupt:1};
-function freshMeta(){return {runs:0,seasons:0,best:0,legacy:0,total:0,perks:{},ach:{},endings:{},stats:{days:0,served:0,clues:0,arrests:0,wrong:0,events:0,jails:0},set:{q3d:'auto'},first:Date.now()};}
+function freshMeta(){return {runs:0,seasons:0,best:0,legacy:0,total:0,perks:{},ach:{},endings:{},stats:{days:0,served:0,clues:0,arrests:0,wrong:0,events:0,jails:0},set:{q3d:'auto',snd:'on',pour:'on',mus:'off'},first:Date.now()};}
 let META=freshMeta();
 function cleanMeta(p){
  const m=freshMeta();p=isObj(p)?p:{};
@@ -1555,6 +1560,9 @@ function cleanMeta(p){
  if(isObj(p.endings))for(const k in ENDN){const v=Math.floor(num(p.endings[k],0,0,1e6));if(v)m.endings[k]=v;}
  if(isObj(p.stats))for(const k in m.stats)m.stats[k]=Math.floor(num(p.stats[k],0,0,1e9));
  if(isObj(p.set)&&['auto','low','off'].includes(p.set.q3d))m.set.q3d=p.set.q3d;
+ if(isObj(p.set)&&['on','off'].includes(p.set.snd))m.set.snd=p.set.snd;
+ if(isObj(p.set)&&['on','off'].includes(p.set.pour))m.set.pour=p.set.pour;
+ if(isObj(p.set)&&['on','off'].includes(p.set.mus))m.set.mus=p.set.mus;
  m.first=num(p.first,Date.now(),0,4e12);
  return m;
 }
@@ -1628,13 +1636,113 @@ function onRunEnd(){
  saveMeta();
  if(!continuable(k)){stDel(slotKey('auto'));stDel(slotKey('auto')+'_bak');}
 }
+/* ===== صدا (ملایم): افکت‌های کوتاه و موسیقی اختیاری ===== */
+const AU={ctx:null,master:null,mus:null,started:false,idx:3};
+const sndOn=()=>META.set.snd!=='off';
+const musOn=()=>META.set.snd!=='off'&&META.set.mus==='on';
+const NOTES=[293.66,311.13,349.23,392,440,466.16,523.25,587.33];
+function auStart(){
+ if(AU.started)return;AU.started=true;
+ try{
+  const C=(typeof window!=='undefined')&&(window.AudioContext||window.webkitAudioContext);if(!C)return;
+  AU.ctx=new C();
+  AU.master=AU.ctx.createGain();AU.master.gain.value=.5;
+  const lp=AU.ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2600;
+  AU.master.connect(lp);lp.connect(AU.ctx.destination);
+  AU.mus=AU.ctx.createGain();AU.mus.gain.value=.07;
+  const dl=AU.ctx.createDelay(1);dl.delayTime.value=.4;const fb=AU.ctx.createGain();fb.gain.value=.25;
+  dl.connect(fb);fb.connect(dl);AU.mus.connect(AU.master);AU.mus.connect(dl);dl.connect(AU.master);
+  setInterval(auMusic,1600);
+ }catch(e){AU.ctx=null;}
+}
+function pluck(f,t,vol,dest){
+ const c=AU.ctx,o=c.createOscillator(),g=c.createGain(),fl=c.createBiquadFilter();
+ o.type='sine';o.frequency.value=f;fl.type='lowpass';fl.frequency.value=1100;
+ g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.06);g.gain.exponentialRampToValueAtTime(.0001,t+1.6);
+ o.connect(fl);fl.connect(g);g.connect(dest);o.start(t);o.stop(t+1.7);
+}
+function auMusic(){
+ try{
+  if(!AU.ctx||!musOn()||document.hidden)return;
+  if(AU.ctx.state==='suspended'){AU.ctx.resume();return;}
+  const t=AU.ctx.currentTime+.02;
+  AU.idx=clamp(AU.idx+Math.round((Math.random()-.5)*3),0,7);
+  if(Math.random()<.55)pluck(NOTES[AU.idx],t,.5,AU.mus);
+  if(Math.random()<.15)pluck(NOTES[(AU.idx+2)%8]*.5,t+.5,.35,AU.mus);
+ }catch(e){}
+}
+function sfx(n){
+ try{
+  if(!AU.ctx||!sndOn())return;
+  const c=AU.ctx,t=c.currentTime;
+  const beep=(f,d,v,at)=>{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+at);g.gain.linearRampToValueAtTime(v,t+at+.02);g.gain.exponentialRampToValueAtTime(.0001,t+at+d);o.connect(g);g.connect(AU.master);o.start(t+at);o.stop(t+at+d+.05);};
+  const noise=(d,f0,f1,v,at)=>{const n=Math.floor(c.sampleRate*d),b=c.createBuffer(1,n,c.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;const s=c.createBufferSource();s.buffer=b;const fl=c.createBiquadFilter();fl.type='bandpass';fl.Q.value=.7;fl.frequency.setValueAtTime(f0,t+at);fl.frequency.linearRampToValueAtTime(f1,t+at+d);const g=c.createGain();g.gain.setValueAtTime(0,t+at);g.gain.linearRampToValueAtTime(v,t+at+.04);g.gain.exponentialRampToValueAtTime(.0001,t+at+d);s.connect(fl);fl.connect(g);g.connect(AU.master);s.start(t+at);};
+  if(n==='coin'){beep(880,.2,.05,0);beep(1175,.28,.04,.07);}
+  else if(n==='pour')noise(.5,450,800,.12,0);
+  else if(n==='ok'){beep(523,.25,.06,0);beep(659,.25,.06,.12);beep(784,.4,.06,.24);}
+  else if(n==='bad')beep(196,.35,.06,0);
+  else if(n==='click')beep(520,.07,.035,0);
+  else if(n==='dice'){for(let i=0;i<4;i++)noise(.08,500+i*60,400,.08,i*.09);}
+  else if(n==='level'){[523,659,784,1047].forEach((f,i)=>beep(f,.35,.05,i*.12));}
+  else if(n==='perfect'){beep(784,.2,.06,0);beep(1175,.35,.05,.09);}
+ }catch(e){}
+}
+function toggleSnd(){META.set.snd=sndOn()?'off':'on';saveMeta();auStart();render();}
+function setOpt(k,v){META.set[k]=v;saveMeta();render();}
+if(typeof document!=='undefined'&&document.addEventListener)document.addEventListener('pointerdown',auStart,{once:true});
+
+/* ---------- بازی کوچک ریختن چای ---------- */
+let mgRaf=0;
+function pick(k){
+ if(META.set.pour==='off'||!S.cur||S.cur.served||S.stock[k]<1||(k==='qalyan'&&S.mods.noQalyan)){serve(k);return;}
+ S.mg={k:k,t0:Date.now()};render();
+}
+const mgPos=()=>{const ph=((Date.now()-S.mg.t0)/950)%2;return ph<=1?ph:2-ph;};
+function startMg(){
+ if(!S.mg)return;S.mg.t0=Date.now();
+ if(typeof cancelAnimationFrame==='function')cancelAnimationFrame(mgRaf);
+ const step=()=>{const m=document.getElementById('mgm');if(!S.mg||!m)return;m.style.left=(mgPos()*100)+'%';mgRaf=requestAnimationFrame(step);};
+ step();
+}
+function mgTap(){
+ if(!S.mg)return;
+ const d=Math.abs(mgPos()-.5),k=S.mg.k;S.mg=null;
+ let b=0;if(d<.09){b=2;sfx('perfect');}else if(d<.2){b=1;sfx('pour');}else sfx('bad');
+ S.pourBonus=b;if(b)addXp(b);
+ serve(k);
+}
+function mgCancel(){S.mg=null;render();}
+function mgCard(){
+ const k=S.mg.k;
+ return `<div class="speech"><b>ریختن ${ITEMS[k].n}</b><br><small>وقتی نشانگر وسط ناحیهٔ پررنگ بود، «بریز!» را بزن.</small><div class="gauge"><div class="zg"></div><div class="zp"></div><div id="mgm" class="mk"></div></div>${btn('بریز!','','mgTap()',{cls:'primary'})}${btn('انصراف','','mgCancel()')}</div>`;
+}
+
+/* ---------- تخته‌نرد سریع با مشتری ---------- */
+const DF=['⚀','⚁','⚂','⚃','⚄','⚅'];
+function dice(bet){
+ const c=S.cur;if(!c||!c.served||c.diced||c.p.role==='inspector')return;
+ if(S.coins<bet){S.note='برای شرط‌بندی پول کافی نداری.';render();return;}
+ c.diced=true;sfx('dice');
+ const r=()=>1+Math.floor(Math.random()*6);
+ const me=[r(),r()],hi=[r(),r()];
+ if(S.sk.charm>=2){const i=me[0]<=me[1]?0:1;if(me[i]<4)me[i]=r();}
+ const a=me[0]+me[1],b=hi[0]+hi[1];
+ let m=`تو: ${DF[me[0]-1]} ${DF[me[1]-1]} (${FA(a)}) — ${c.p.name}: ${DF[hi[0]-1]} ${DF[hi[1]-1]} (${FA(b)}). `;
+ if(a>b){
+  S.coins+=bet;S.fac.people=clamp(S.fac.people+1,0,100);addXp(3);m+=`بردی! +${FA(bet)} قران`;
+  if(c.p.role==='spy'||c.p.role==='decoy'){S.trust[c.p.id]=(S.trust[c.p.id]||0)+1;m+=' و او را شیفتهٔ خودت کردی (اعتماد +۱).';}
+  sfx('ok');
+ }else if(a<b){S.coins-=bet;m+=`باختی. −${FA(bet)} قران`;sfx('bad');}
+ else m+='مساوی شد؛ پولی جابه‌جا نشد.';
+ c.msg2=(c.msg2?c.msg2+' ':'')+m;render();
+}
 /* ---------- نمایش ---------- */
 function hud(){
  let dots='';
  for(let i=1;i<FINAL;i++)dots+=`<i class="${i<S.day?'past':i===S.day?'now':''}"></i>`;
  const heat=(S.ring||S.heat>0)?`<div class="${S.heat>=60?'hot':''}"><small>ظن داروغه</small><b>${FA(S.heat)}</b></div>`:'';
  return `<div class="hud"><div><small>روز</small><b>${FA(S.day)} از ${FA(FINAL-1)}</b></div><div><small>نوبت</small><b>${PHI[S.phase]} ${PH[S.phase]}</b></div><div><small>کیسه</small><b>${FA(S.coins)} قران</b></div><div><small>اعتبار</small><b>${FA(S.rep)}</b></div><div><small>سطح</small><b>${FA(S.lvl)}${S.pts?' ✦':''}</b></div>${heat}</div>
- <div class="days">${dots}<span>${S.season>1?`فصل ${FA(S.season)} — `:''}${S.day>=FINAL-1?sanOf().n+': فردا':`تا ${sanOf().n}: ${FA(FINAL-S.day)} روز`}</span><button class="btn slim" onclick="openModal('save')">ذخیره</button><button class="btn slim" onclick="toggleJr()">دفتر یادداشت</button></div>`;
+ <div class="days">${dots}<span>${S.season>1?`فصل ${FA(S.season)} — `:''}${S.day>=FINAL-1?sanOf().n+': فردا':`تا ${sanOf().n}: ${FA(FINAL-S.day)} روز`}</span><button class="btn slim" onclick="toggleSnd()" aria-label="صدا">${META.set.snd==='off'?'🔇':'🔊'}</button><button class="btn slim" onclick="openModal('save')">ذخیره</button><button class="btn slim" onclick="toggleJr()">دفتر یادداشت</button></div>`;
 }
 function stockChips(){return `<div class="chips">${Object.keys(ITEMS).map(k=>`<span class="chip">${ITEMS[k].n}: ${FA(S.stock[k])}</span>`).join('')}</div>`;}
 function btn(label,sub,act,opt){opt=opt||{};return `<button class="btn ${opt.cls||''}" ${opt.dis?'disabled':''} onclick="${act}"><b>${label}</b>${sub?`<small>${sub}</small>`:''}</button>`;}
@@ -1681,14 +1789,15 @@ function panelCoffee(){
  if(!c.served){
   h+=`<div class="speech">${c.greet}</div>`;
   if(S.sk.wits>=2&&p.likes)h+=`<p><small>تیزبینی: به نظر می‌رسد «${ITEMS[p.likes].n}» می‌خواهد.</small></p>`;
-  h+=stockChips()+`<div>`+Object.keys(ITEMS).map(k=>{
+  if(S.mg)h+=mgCard();else h+=stockChips()+`<div>`+Object.keys(ITEMS).map(k=>{
    const banned=k==='qalyan'&&S.mods.noQalyan,out=S.stock[k]<1;
-   return btn(ITEMS[k].n,banned?'امروز ممنوع است':out?'تمام شده':(p.free?'رایگان':`${FA(sellPrice(k))} قران`)+` — ${FA(S.stock[k])} موجود`,`serve('${k}')`,{dis:banned||out});
+   return btn(ITEMS[k].n,banned?'امروز ممنوع است':out?'تمام شده':(p.free?'رایگان':`${FA(sellPrice(k))} قران`)+` — ${FA(S.stock[k])} موجود`,`pick('${k}')`,{dis:banned||out});
   }).join('')+`</div>${btn('او را بدون پذیرایی بدرقه کن','اعتبارت کمی کم می‌شود','skip()',{cls:'danger'})}`;
  }else{
   h+=`<div class="speech">${c.msg}</div>`;
   if(c.msg2)h+=`<div class="speech">${c.msg2}</div>`;
   if(!c.talked)h+=btn('کمی گپ بزن','گوش بده ببینی چه می‌گوید','talk()');
+  if(!c.diced&&p.role!=='inspector')h+=`<div class="two">${btn('تخته‌نرد سریع','شرط ۳ قران','dice(3)',{dis:S.coins<3})}${btn('تخته‌نرد بزرگ','شرط ۸ قران','dice(8)',{dis:S.coins<8})}</div>`;
   h+=btn(S.queue.length?'مشتری بعدی':'مشتری‌ها تمام شدند','','nextCustomer()',{cls:'primary'});
  }
  return h+'</div>';
@@ -1828,7 +1937,7 @@ function legacyModal(){
 }
 function setModal(){
  const q=META.set.q3d,o=(v,n)=>btn(n+(q===v?' ✓':''),'',`setQ3d('${v}')`,{cls:q===v?'primary':''});
- return `<div class="jr"><div class="in"><h2>تنظیمات</h2><div class="person"><h3>سه‌بعدی</h3><p><small>اگر بازی روی دستگاهت کند است یا تصویر سه‌بعدی درست نیامد، کیفیت را کم کن یا سه‌بعدی را خاموش کن (کوچهٔ دوبعدی جایگزین می‌شود). تغییر بعد از باز کردن دوبارهٔ صفحه اعمال می‌شود.</small></p>${o('auto','خودکار')}${o('low','کیفیت کم')}${o('off','خاموش (دوبعدی)')}${btn('بازکردن دوبارهٔ صفحه','','reloadPage()')}</div>${btn('بستن','','closeModal()',{cls:'primary'})}</div></div>`;
+ return `<div class="jr"><div class="in"><h2>تنظیمات</h2><div class="person"><h3>سه‌بعدی</h3><p><small>اگر بازی روی دستگاهت کند است یا تصویر سه‌بعدی درست نیامد، کیفیت را کم کن یا سه‌بعدی را خاموش کن (کوچهٔ دوبعدی جایگزین می‌شود). تغییر بعد از باز کردن دوبارهٔ صفحه اعمال می‌شود.</small></p>${o('auto','خودکار')}${o('low','کیفیت کم')}${o('off','خاموش (دوبعدی)')}${btn('بازکردن دوبارهٔ صفحه','','reloadPage()')}</div><div class="person"><h3>صدا و بازی کوچک</h3>${btn('صدای افکت‌ها (ملایم)'+(META.set.snd!=='off'?' ✓':''),'سکه، ریختن چای، تاس',`setOpt('snd','${META.set.snd==='off'?'on':'off'}');auStart()`)}${btn('موسیقی پس‌زمینه (خیلی آرام)'+(META.set.mus==='on'?' ✓':''),'پیش‌فرض خاموش است',`setOpt('mus','${META.set.mus==='on'?'off':'on'}');auStart()`)}${btn('بازی کوچک ریختن چای'+(META.set.pour!=='off'?' ✓':''),'هنگام سرو، زمان‌بندی کن و انعام بیشتر بگیر',`setOpt('pour','${META.set.pour==='off'?'on':'off'}')`)}</div>${btn('بستن','','closeModal()',{cls:'primary'})}</div></div>`;
 }
 const MODALS={save:saveModal,legacy:legacyModal,set:setModal};
 const VIEWS={title:panelTitle,decree:panelDecree,street:panelStreet,coffee:panelCoffee,grocer:panelGrocer,bazaar:panelBazaar,square:panelSquare,home:panelHome,police:panelPolice,hideout:panelHideout,event:panelEvent,end:panelEnd};
@@ -1843,6 +1952,8 @@ function render(){
  const mdl=S.modal&&MODALS[S.modal]?MODALS[S.modal]():'';
  ui.innerHTML=ts+(ln?`<div class="note">${ln}</div>`:'')+(S.note?`<div class="note">${S.note}</div>`:'')+VIEWS[S.view]()+(S.jr&&!mdl?journalHTML():'')+mdl;
  st.classList.toggle('fb',!T.ok);
+ if(S.view!=='coffee')S.mg=null;
+ if(S.mg)startMg();
  if(T.ok)set3D();else st.innerHTML=S.view==='end'?'':scene();
 }
 (function boot(){
