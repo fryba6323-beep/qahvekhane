@@ -32,6 +32,24 @@ jobs:
       - name: Create Android project
         run: npx cap add android
 
+      - name: Set app icon
+        run: |
+          SRC=$(ls *.png *.jpg *.jpeg *.webp 2>/dev/null | head -n1 || true)
+          if [ -n "$SRC" ]; then
+            echo "Using icon: $SRC"
+            sudo apt-get update -y
+            sudo apt-get install -y imagemagick
+            RES=android/app/src/main/res
+            rm -rf $RES/mipmap-anydpi-v26
+            for p in "mdpi 48" "hdpi 72" "xhdpi 96" "xxhdpi 144" "xxxhdpi 192"; do
+              set -- $p
+              convert "$SRC[0]" -resize "${2}x${2}^" -gravity center -extent "${2}x${2}" "$RES/mipmap-$1/ic_launcher.png"
+              cp "$RES/mipmap-$1/ic_launcher.png" "$RES/mipmap-$1/ic_launcher_round.png"
+            done
+          else
+            echo "No image found in repo root; keeping default icon"
+          fi
+
       - name: Sync web files
         run: npx cap sync android
 
